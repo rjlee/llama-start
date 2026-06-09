@@ -45,7 +45,7 @@ Set these in your shell environment or add them to the project's `.env` file.
 
 | Compose name | Model | GGUF | Engine | Context | TG |
 |---|---|---|---|---|---|
-| `ik_llama-unsloth-qwen3.6-35b-a3b` | Qwen3.6-35B-A3B | APEX I-Compact | ik_llama | 192K | 143 |
+| `ik_llama-unsloth-qwen3.6-35b-a3b` | Qwen3.6-35B-A3B | APEX I-Compact | ik_llama | 256K | 143 |
 | `llama.cpp-unsloth-qwen3.6-35b-a3b-mtp` | Qwen3.6-35B-A3B | UD-Q4_K_M MTP | llama.cpp | 128K | 79 |
 | `llama.cpp-unsloth-qwen3.6-35b-a3b` | Qwen3.6-35B-A3B | UD-Q4_K_M | llama.cpp | 128K | 46 |
 | `beellama-unsloth-qwen3.6-27b` | Qwen3.6-27B | Q4_K_M DFlash | beellama | 131K | 80 |
