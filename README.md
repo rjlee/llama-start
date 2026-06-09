@@ -75,7 +75,7 @@ TG = tokens/second (256-token completion, server mode).
 - [beellama.cpp](https://github.com/Anbeeld/beellama.cpp) is a performance fork adding DFlash speculative decoding and TurboQuant KV compression. Uses a lightweight draft GGUF alongside the target model for 1.7-2.6x speedup on compatible models (requires a separate DFlash draft GGUF).
 - Some larger GGUFs (22 GB+) require mainline llama.cpp due to VRAM constraints on 24 GB cards
 - Persistence mode (`nvidia-smi -pm 1`) is enabled automatically to maximise available VRAM
-- The slot-cleaner sidecar is started automatically with each model and polls `/slots/:id_slot/erase` every 30 seconds
+- The slot-cleaner sidecar is started automatically with each model. It polls `/slots/:id_slot/erase` every 30 seconds to clean up stale inference slots left behind after client disconnects or request timeouts — preventing slots from filling up and blocking new requests.
 - Override the models directory by setting `MODELS_DIR` in your environment (e.g. `export MODELS_DIR=/data/models`)
 
 ---
