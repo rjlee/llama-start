@@ -1,4 +1,4 @@
-# llama-server
+# llama-start
 
 Docker compose configurations for running LLM inference servers on NVIDIA GPUs using [llama.cpp](https://github.com/ggml-org/llama.cpp) and [ik_llama.cpp](https://github.com/ikawrakow/ik-llama-cpp).
 
@@ -30,7 +30,7 @@ Disable the slot-cleaner sidecar:
 Run benchmarks across all models:
 
 ```bash
-bash benchmark/benchmark.sh
+./benchmark/benchmark
 ```
 
 ## Models
@@ -54,9 +54,9 @@ TG = tokens/second (256-token completion, server mode).
 | File | Purpose |
 |------|---------|
 | `llama-start` | Model launcher with model listing, health checks, and slot-cleaner |
-| `slot-cleaner.sh` | Sidecar to clean stale inference slots (enabled by default) |
-| `compose.*.yml` | Docker compose files per model and engine variant |
-| `benchmark/benchmark.sh` | Automated benchmark runner (llama-bench + server completion) |
+| `slot-cleaner/slot-cleaner.sh` | Sidecar to clean stale inference slots (enabled by default) |
+| `compose/*.yml` | Docker compose files per model and engine variant |
+| `benchmark/benchmark` | Automated benchmark runner (llama-bench + server completion) |
 | `benchmark/results/*.json` | Benchmark results (completion and llama-bench) |
 
 ## Engine Notes

@@ -19,9 +19,9 @@ usage() {
     printf "  %-35s %-6s %-3s %-3s %-4s %-6s %s\\n" "NAME" "CTX" "NP" "FA" "MTP" "BNCH" "SRV"
     printf "  %-35s %-6s %-3s %-3s %-4s %-6s %s\\n" "----" "---" "--" "--" "---" "----" "---"
 
-    for f in "$DIR"/compose.*.yml; do
+    for f in "$DIR"/compose/*.yml; do
     [[ "$f" == *slot-cleaner* ]] && continue
-        name=$(basename "$f" | sed "s/^compose\.//; s/\.yml$//")
+        name=$(basename "$f" .yml)
         ctx=$(grep -A1 "ctx-size" "$f" 2>/dev/null | tail -1 | sed "s/.*- //;s/'//g;s/\"//g" || echo "")
         ctx="$(( ctx / 1024 ))k"
         np=$(grep -A1 " -np" "$f" 2>/dev/null | tail -1 | sed "s/.*- //;s/'//g;s/\"//g" || echo "")
@@ -68,7 +68,7 @@ if [[ "${1:-}" == "--slot-cleaner" ]]; then
     shift
 fi
 set -euo pipefail
-COMPOSE="$DIR/compose.$1.yml"
+COMPOSE="$DIR/compose/$1.yml"
 
 if [[ ! -f "$COMPOSE" ]]; then
     echo "Available models:"
@@ -82,7 +82,7 @@ docker rm -f slot-cleaner 2>/dev/null || true
 
 echo "starting with $1 ..."
 if [ "$SLOT_CLEANER" = "true" ]; then
-  docker compose -f "$COMPOSE" -f "$DIR/compose.slot-cleaner.yml" --profile clean up -d
+  docker compose -f "$COMPOSE" -f "$DIR/slot-cleaner/compose.slot-cleaner.yml" --profile clean up -d
 else
   docker compose -f "$COMPOSE" up -d
 fi

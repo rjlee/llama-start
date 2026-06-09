@@ -17,9 +17,9 @@ mkdir -p "$RESULTS_DIR"
 nvidia-smi --query-gpu=driver_version --format=csv,noheader 2>/dev/null > "$DIR/.env" || true
 nvidia-smi -pm 1 >/dev/null 2>&1 || true
 
-for compose in "$DIR"/compose.*.yml; do
+for compose in "$DIR"/compose/*.yml; do
     [[ "$compose" == *slot-cleaner* ]] && continue
-    name=$(basename "$compose" | sed "s/^compose\.//; s/\.yml$//")
+    name=$(basename "$compose" .yml)
     gfile=$(grep " - /models/" "$compose" | sed "s|.*/models/||")
 
     if [[ -z "$gfile" ]]; then

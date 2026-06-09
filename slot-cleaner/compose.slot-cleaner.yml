@@ -6,5 +6,5 @@ services:
     container_name: slot-cleaner
     restart: unless-stopped
     volumes:
-      - /root/docker/llama-server/slot-cleaner.sh:/slot-cleaner.sh:ro
+      - /root/docker/llama-server/slot-cleaner/slot-cleaner.sh:/slot-cleaner.sh:ro
     command: sh /slot-cleaner.sh
