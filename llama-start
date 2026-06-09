@@ -26,21 +26,22 @@ usage() {
         ctx="$(( ctx / 1024 ))k"
         np=$(grep -A1 " -np" "$f" 2>/dev/null | tail -1 | sed "s/.*- //;s/'//g;s/\"//g" || echo "")
         [[ -z "$np" ]] && np="auto"
-        mtp="N"; fa="Y"
+        mtp="N"
+        fa="Y"
         if grep -qE "draft-mtp|multi-token-prediction|mtp:n_max" "$f" 2>/dev/null; then mtp="Y"; fi
 
         bf="$DIR/benchmark/results/$name.json"
         tg="-"
         if [[ -f "$bf" ]]; then
             tg=$(timeout 3 python3 "$DIR/benchmark/read_bench.py" "$bf" 2>/dev/null | cut -d" " -f1 || echo "-")
-        tg="${tg:--}"
+            tg="${tg:--}"
         fi
 
         cf="$DIR/benchmark/results/$name.completion.json"
         srv="-"
         if [[ -f "$cf" ]]; then
             srv=$(timeout 3 python3 "$DIR/benchmark/read_completion.py" "$cf" 2>/dev/null || echo "-")
-        srv="${srv:--}"
+            srv="${srv:--}"
         fi
 
         printf "  %-35s %-6s %-3s %-3s %-4s %-6s %s\\n" "$name" "$ctx" "$np" "$fa" "$mtp" "$tg" "$srv"
@@ -67,6 +68,13 @@ if [[ "${1:-}" == "--slot-cleaner" ]]; then
     echo "NOTE: --slot-cleaner is now the default; use --no-slot-cleaner to disable"
     shift
 fi
+
+if [[ $# -eq 0 ]]; then
+    echo "Error: no model name provided."
+    usage
+    exit 1
+fi
+
 set -euo pipefail
 COMPOSE="$DIR/compose/$1.yml"
 
@@ -99,3 +107,4 @@ done
 
 echo "WARNING: health check did not become healthy within 5m"
 docker ps --filter name=llama --format "{{.Names}} {{.Status}}"
+exit 1
