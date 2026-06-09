@@ -5,7 +5,7 @@ Docker compose configurations for running LLM inference servers on NVIDIA GPUs u
 ## Prerequisites
 
 - NVIDIA GPU with Docker and [NVIDIA Container Toolkit](https://docs.nvidia.com/datacenter/cloud-native/container-toolkit/install-guide.html)
-- Model files downloaded to `/models/` on the host
+- Model files — set `MODELS_DIR` (default: `/models`) or download to `/models/`
 
 ## Usage
 
@@ -33,6 +33,15 @@ Run benchmarks across all models:
 ./benchmark/benchmark
 ```
 
+## Configuration
+
+| Variable | Default | Description |
+|---|---|---|
+| `MODELS_DIR` | `/models` | Host path to the directory containing model GGUF files |
+| `HERMES_IMAGE` | `nousresearch/hermes-agent:latest` | (hermes-stack only) Override the Hermes agent image |
+
+Set these in your shell environment or add them to the project's `.env` file.
+
 ## Models
 
 | Compose name | Model | GGUF | Engine | Context | TG |
@@ -54,8 +63,9 @@ TG = tokens/second (256-token completion, server mode).
 | File | Purpose |
 |------|---------|
 | `llama-start` | Model launcher with model listing, health checks, and slot-cleaner |
-| `slot-cleaner/slot-cleaner.sh` | Sidecar to clean stale inference slots (enabled by default) |
 | `compose/*.yml` | Docker compose files per model and engine variant |
+| `slot-cleaner/slot-cleaner.sh` | Sidecar to clean stale inference slots (enabled by default) |
+| `slot-cleaner/compose.slot-cleaner.yml` | Docker compose fragment for the slot-cleaner sidecar |
 | `benchmark/benchmark` | Automated benchmark runner (llama-bench + server completion) |
 | `benchmark/results/*.json` | Benchmark results (completion and llama-bench) |
 
@@ -65,3 +75,4 @@ TG = tokens/second (256-token completion, server mode).
 - Some larger GGUFs (22 GB+) require mainline llama.cpp due to VRAM constraints on 24 GB cards
 - Persistence mode (`nvidia-smi -pm 1`) is enabled automatically to maximise available VRAM
 - The slot-cleaner sidecar is started automatically with each model and polls `/slots/:id_slot/erase` every 30 seconds
+- Override the models directory by setting `MODELS_DIR` in your environment (e.g. `export MODELS_DIR=/data/models`)
