@@ -16,8 +16,21 @@ usage() {
     echo "SRV  = server completion TG (256 tokens via /completion)"
     echo ""
     echo "Models:"
-    printf "  %-35s %-6s %-3s %-3s %-4s %-6s %s\\n" "NAME" "CTX" "NP" "FA" "MTP" "BNCH" "SRV"
-    printf "  %-35s %-6s %-3s %-3s %-4s %-6s %s\\n" "----" "---" "--" "--" "---" "----" "---"
+
+    names=()
+    for f in "$DIR"/compose/*.yml; do
+        [[ "$f" == *slot-cleaner* ]] && continue
+        names+=("$(basename "$f" .yml)")
+    done
+
+    w=4
+    for n in "${names[@]}"; do
+        [[ ${#n} -gt $w ]] && w=${#n}
+    done
+
+    name_fmt="%-${w}s"
+    printf "  $name_fmt %-6s %-3s %-3s %-4s %-6s %s\\n" "NAME" "CTX" "NP" "FA" "MTP" "BNCH" "SRV"
+    printf "  $name_fmt %-6s %-3s %-3s %-4s %-6s %s\\n" "----" "---" "--" "--" "---" "----" "---"
 
     for f in "$DIR"/compose/*.yml; do
     [[ "$f" == *slot-cleaner* ]] && continue
@@ -44,7 +57,7 @@ usage() {
             srv="${srv:--}"
         fi
 
-        printf "  %-35s %-6s %-3s %-3s %-4s %-6s %s\\n" "$name" "$ctx" "$np" "$fa" "$mtp" "$tg" "$srv"
+        printf "  $name_fmt %-6s %-3s %-3s %-4s %-6s %s\\n" "$name" "$ctx" "$np" "$fa" "$mtp" "$tg" "$srv"
     done
 }
 
