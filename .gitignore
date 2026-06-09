@@ -1,0 +1,5 @@
+.env
+benchmark/results/*.stderr
+fix_compose.py
+__pycache__/
+*.pyc

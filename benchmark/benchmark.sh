@@ -1,0 +1,155 @@
+#!/usr/bin/env bash
+set -uo pipefail
+
+# Clean up on interrupt
+_cleanup() {
+  echo ""
+  echo "  interrupted — stopping container..."
+  docker rm -f llama-server 2>/dev/null || true
+  docker compose -f "$compose" down 2>/dev/null || true
+  exit 1
+}
+trap _cleanup INT TERM
+DIR="$(cd "$(dirname "$(realpath "$0")")/.." && pwd)"
+RESULTS_DIR="$DIR/benchmark/results"
+mkdir -p "$RESULTS_DIR"
+
+nvidia-smi --query-gpu=driver_version --format=csv,noheader 2>/dev/null > "$DIR/.env" || true
+nvidia-smi -pm 1 >/dev/null 2>&1 || true
+
+for compose in "$DIR"/compose.*.yml; do
+    [[ "$compose" == *slot-cleaner* ]] && continue
+    name=$(basename "$compose" | sed "s/^compose\.//; s/\.yml$//")
+    gfile=$(grep " - /models/" "$compose" | sed "s|.*/models/||")
+
+    if [[ -z "$gfile" ]]; then
+        echo "  $name: no model file found, skipping"
+        continue
+    fi
+
+    echo ""
+    echo "============================================"
+    echo "Benchmarking: $name ($gfile)"
+    echo "============================================"
+
+    # 1. llama-bench (all models, using full-cuda image for consistency)
+    bench_out="$RESULTS_DIR/$name.json"
+
+    # ---- 1. llama-bench ----
+    if echo "$name" | grep -qE -- "-mtp$|-ik$"; then
+        echo "  [llama-bench] skipped (MTP/ik variant)"
+        rm -f "$bench_out" "${bench_out}.stderr" 2>/dev/null || true
+    elif [[ -f "$bench_out" ]] && [[ -s "$bench_out" ]]; then
+        echo "  [llama-bench] already done, reusing"
+    else
+        echo "  [llama-bench] running..."
+        pkill -9 llama-bench 2>/dev/null || true
+        nvidia-smi --query-compute-apps=pid --format=csv,noheader 2>/dev/null | tail -n +2 | xargs -r kill -9 2>/dev/null || true
+        rm -f "$bench_out" "${bench_out}.stderr"
+
+        if docker run --rm --gpus all \
+            -v /models:/models \
+            --entrypoint /app/llama-bench \
+            ghcr.io/ggml-org/llama.cpp:full-cuda \
+            -m "/models/$gfile" \
+            -p 512 -n 256 -ngl 99 -t 8 -o json \
+            2>"${bench_out}.stderr" > "$bench_out"; then
+            if [[ -s "$bench_out" ]] && grep -q "avg_ts" "$bench_out" 2>/dev/null; then
+                python3 "$DIR/benchmark/read_bench.py" "$bench_out" 2>/dev/null || true
+            else
+                echo "  [llama-bench] no valid output"
+                cat "${bench_out}.stderr"
+                rm -f "$bench_out"
+            fi
+        else
+            echo "  [llama-bench] FAILED"
+            cat "${bench_out}.stderr"
+            rm -f "$bench_out" 2>/dev/null || true
+        fi
+    fi
+
+    # 2. Server completion benchmark (uses the compose's own engine)
+    comp_out="$RESULTS_DIR/$name.completion.json"
+    if [[ -f "$comp_out" ]] && [[ -s "$comp_out" ]]; then
+        echo "  [completion] already done, reusing"
+        continue
+    fi
+
+    echo "  [completion] starting server..."
+    # Aggressively free GPU before starting
+    pkill -9 llama-bench 2>/dev/null || true
+    docker rm -f llama-server 2>/dev/null || true
+    sleep 3
+    docker compose -f "$compose" down 2>/dev/null || true
+
+    docker compose -f "$compose" up -d 2>&1 || echo "  [completion] compose up failed"
+
+    # Wait for health (up to 15 min)
+    ok=false
+    for ((i=1; i<=450; i++)); do
+        sleep 2
+        status=$(docker inspect llama-server --format "{{.State.Health.Status}}" 2>/dev/null || echo "")
+        if [[ "$status" == "healthy" ]]; then
+            echo -n " ($((i*2))s)"
+            ok=true
+            break
+        fi
+        if [[ "$((i % 15))" -eq 0 ]]; then
+            echo -n "."
+        fi
+    done
+
+    if ! $ok; then
+        echo "  [completion] server never became healthy"
+        docker compose -f "$compose" down 2>/dev/null || true
+        echo '{"error": "server not healthy"}' > "$comp_out"
+        continue
+    fi
+
+    echo "  [completion] running 256-token generation..."
+
+    result=$(curl -s --max-time 120 http://localhost:8080/completion \
+        -d '{"prompt":"Explain the concept of recursion in programming in a few paragraphs.","n_predict":256,"temperature":0.7}' 2>/dev/null || echo "")
+
+    if [[ -z "$result" ]]; then
+        echo "  [completion] request failed (empty response)"
+        docker compose -f "$compose" down 2>/dev/null || true
+        echo '{"error": "empty response"}' > "$comp_out"
+        continue
+    fi
+
+    tg=$(echo "$result" | python3 -c "
+import json,sys
+d=json.load(sys.stdin)
+t=d.get('timings',{})
+print(json.dumps({
+    'tg': round(t.get('predicted_per_second',0),1),
+    'pp': round(t.get('prompt_per_second',0),1),
+    'predicted': t.get('predicted_n',0),
+    'evaluated': t.get('prompt_n',0)
+}))
+" 2>/dev/null || echo '{"error":"parse failed"}')
+
+    echo "$tg" > "$comp_out"
+    echo "  [completion] result: $(echo "$tg" | python3 -c "import json,sys; d=json.load(sys.stdin); print(f\"TG={d.get('tg','?')} PP={d.get('pp','?')}\")" 2>/dev/null || echo "$tg")"
+
+    docker compose -f "$compose" down 2>/dev/null || true
+    echo "  [completion] done"
+done
+
+echo ""
+echo "============================================"
+echo "All benchmarks complete!"
+echo "============================================"
+
+echo ""
+echo "=== Completion Benchmark Results ==="
+printf "  %-40s %6s %6s\\n" "Model" "TG" "PP"
+printf "  %-40s %6s %6s\\n" "-----" "--" "--"
+for f in "$RESULTS_DIR"/*.completion.json; do
+  name=$(basename "$f" .completion.json)
+  data=$(cat "$f" 2>/dev/null || echo "{}")
+  tg=$(echo "$data" | python3 -c "import json,sys; print(json.load(sys.stdin).get(\"tg\",\"?\"))" 2>/dev/null || echo "?")
+  pp=$(echo "$data" | python3 -c "import json,sys; print(json.load(sys.stdin).get(\"pp\",\"?\"))" 2>/dev/null || echo "?")
+  printf "  %-40s %6s %6s\n" "$name" "$tg" "$pp"
+done

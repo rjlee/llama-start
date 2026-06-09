@@ -1,0 +1,65 @@
+services:
+  llama-server:
+    image: ghcr.io/ggml-org/llama.cpp:server-cuda13
+    container_name: llama-server
+    restart: unless-stopped
+    ports:
+    - 8080:8080
+    volumes:
+    - /models:/models
+    - /usr/lib/x86_64-linux-gnu/libcuda.so.1:/usr/local/nvidia/lib64/libcuda.so.1
+    - /usr/lib/x86_64-linux-gnu/libcuda.so.${NVIDIA_DRIVER_VER}:/usr/local/nvidia/lib64/libcuda.so.${NVIDIA_DRIVER_VER}
+    - /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1:/usr/local/nvidia/lib64/libnvidia-ml.so.1
+    - /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.${NVIDIA_DRIVER_VER}:/usr/local/nvidia/lib64/libnvidia-ml.so.${NVIDIA_DRIVER_VER}
+    - /usr/lib/x86_64-linux-gnu/libnvidia-ptxjitcompiler.so.1:/usr/local/nvidia/lib64/libnvidia-ptxjitcompiler.so.1
+    - /usr/lib/x86_64-linux-gnu/libnvidia-ptxjitcompiler.so.${NVIDIA_DRIVER_VER}:/usr/local/nvidia/lib64/libnvidia-ptxjitcompiler.so.${NVIDIA_DRIVER_VER}
+    devices:
+    - /dev/nvidia0:/dev/nvidia0
+    - /dev/nvidiactl:/dev/nvidiactl
+    - /dev/nvidia-uvm:/dev/nvidia-uvm
+    command:
+    - --host
+    - 0.0.0.0
+    - --port
+    - '8080'
+    - -m
+    - /models/Qwen3.6-35B-A3B-UD-Q4_K_M.mtp.gguf
+    - --ctx-size
+    - '131072'
+    - -b
+    - '4096'
+    - -ub
+    - '1024'
+    - --flash-attn
+    - '1'
+    - --ctx-checkpoints
+    - '0'
+    - --cache-ram
+    - '4096'
+    - --cache-type-k
+    - q8_0
+    - --cache-type-v
+    - q5_0
+    - -np
+    - '1'
+    - -ngl
+    - '99'
+    - --no-warmup
+    - --slot-save-path
+    - /tmp
+    - --threads
+    - '8'
+    - --spec-type
+    - draft-mtp
+    - --spec-draft-n-max
+    - '4'
+    healthcheck:
+      test:
+      - CMD
+      - curl
+      - -sf
+      - http://localhost:8080/health
+      interval: 15s
+      timeout: 10s
+      retries: 3
+      start_period: 180s

@@ -1,0 +1,10 @@
+services:
+  slot-cleaner:
+    profiles:
+      - clean
+    image: alpine:latest
+    container_name: slot-cleaner
+    restart: unless-stopped
+    volumes:
+      - /root/docker/llama-server/slot-cleaner.sh:/slot-cleaner.sh:ro
+    command: sh /slot-cleaner.sh
