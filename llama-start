@@ -17,21 +17,8 @@ usage() {
     echo ""
     echo "Models:"
 
-    names=()
-    for f in "$DIR"/compose/*.yml; do
-        [[ "$f" == *slot-cleaner* ]] && continue
-        names+=("$(basename "$f" .yml)")
-    done
-
+    rows=()
     w=4
-    for n in "${names[@]}"; do
-        [[ ${#n} -gt $w ]] && w=${#n}
-    done
-
-    name_fmt="%-${w}s"
-    printf "  $name_fmt %-6s %-3s %-3s %-4s %-6s %s\\n" "NAME" "CTX" "NP" "FA" "MTP" "BNCH" "SRV"
-    printf "  $name_fmt %-6s %-3s %-3s %-4s %-6s %s\\n" "----" "---" "--" "--" "---" "----" "---"
-
     for f in "$DIR"/compose/*.yml; do
     [[ "$f" == *slot-cleaner* ]] && continue
         name=$(basename "$f" .yml)
@@ -57,6 +44,21 @@ usage() {
             srv="${srv:--}"
         fi
 
+        # shellcheck disable=SC2001
+        size=$(echo "$name" | sed 's/.*-\([0-9]*\)b.*/\1/')
+        srv_n=0
+        [[ "$srv" != "-" ]] && srv_n=$srv
+        rows+=("$size	$srv_n	$name	$ctx	$np	$fa	$mtp	$tg	$srv")
+        nlen=${#name}
+        [[ $nlen -gt $w ]] && w=$nlen
+    done
+
+    name_fmt="%-${w}s"
+
+    printf "  $name_fmt %-6s %-3s %-3s %-4s %-6s %s\\n" "NAME" "CTX" "NP" "FA" "MTP" "BNCH" "SRV"
+    printf "  $name_fmt %-6s %-3s %-3s %-4s %-6s %s\\n" "----" "---" "--" "--" "---" "----" "---"
+
+    printf '%s\n' "${rows[@]}" | sort -t$'\t' -k1,1rn -k2,2rn | while IFS=$'\t' read -r _ _ name ctx np fa mtp tg srv; do
         printf "  $name_fmt %-6s %-3s %-3s %-4s %-6s %s\\n" "$name" "$ctx" "$np" "$fa" "$mtp" "$tg" "$srv"
     done
 }
