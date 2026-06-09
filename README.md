@@ -38,7 +38,6 @@ Run benchmarks across all models:
 | Variable | Default | Description |
 |---|---|---|
 | `MODELS_DIR` | `/models` | Host path to the directory containing model GGUF files |
-| `HERMES_IMAGE` | `nousresearch/hermes-agent:latest` | (hermes-stack only) Override the Hermes agent image |
 
 Set these in your shell environment or add them to the project's `.env` file.
 
