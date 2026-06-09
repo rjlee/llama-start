@@ -18,13 +18,13 @@ List available models:
 Start a model:
 
 ```bash
-./llama-start unsloth-qwen3.6-35b-a3b-ik
+./llama-start ik_llama-unsloth-qwen3.6-35b-a3b
 ```
 
 Disable the slot-cleaner sidecar:
 
 ```bash
-./llama-start --no-slot-cleaner unsloth-qwen3.6-27b
+./llama-start --no-slot-cleaner ik_llama-unsloth-qwen3.6-27b
 ```
 
 Run benchmarks across all models:
@@ -45,16 +45,16 @@ Set these in your shell environment or add them to the project's `.env` file.
 
 | Compose name | Model | GGUF | Engine | Context | TG |
 |---|---|---|---|---|---|
-| `unsloth-qwen3.6-35b-a3b-ik` | Qwen3.6-35B-A3B | APEX I-Compact | ik_llama | 192K | 143 |
-| `unsloth-qwen3.6-35b-a3b-mtp` | Qwen3.6-35B-A3B | UD-Q4_K_M MTP | llama.cpp | 128K | 79 |
-| `unsloth-qwen3.6-35b-a3b` | Qwen3.6-35B-A3B | UD-Q4_K_M | llama.cpp | 128K | 46 |
-| `beellama-qwen3.6-27b` | Qwen3.6-27B | Q4_K_M DFlash | beellama | 131K | 80 |
-| `unsloth-qwen3.6-27b-mtp` | Qwen3.6-27B | Q4_K_M MTP | ik_llama | 200K | 47 |
-| `unsloth-qwen3.6-27b` | Qwen3.6-27B | Q4_K_M | ik_llama | 128K | 31 |
-| `unsloth-qwen3.5-9b-mtp` | Qwen3.5-9B | UD-Q4_K_XL MTP | ik_llama | 256K | 106 |
-| `unsloth-qwen3.5-9b` | Qwen3.5-9B | UD-Q4_K_XL | ik_llama | 256K | 105 |
-| `jackrong-qwopus3-5-9b-coder-mtp` | Qwopus3.5-9B-Coder | Q4_K_M MTP | ik_llama | 256K | 102 |
-| `jackrong-qwopus3-5-9b-coder` | Qwopus3.5-9B-Coder | Q4_K_M | ik_llama | 256K | 120 |
+| `ik_llama-unsloth-qwen3.6-35b-a3b` | Qwen3.6-35B-A3B | APEX I-Compact | ik_llama | 192K | 143 |
+| `llama.cpp-unsloth-qwen3.6-35b-a3b-mtp` | Qwen3.6-35B-A3B | UD-Q4_K_M MTP | llama.cpp | 128K | 79 |
+| `llama.cpp-unsloth-qwen3.6-35b-a3b` | Qwen3.6-35B-A3B | UD-Q4_K_M | llama.cpp | 128K | 46 |
+| `beellama-ik_llama-unsloth-qwen3.6-27b` | Qwen3.6-27B | Q4_K_M DFlash | beellama | 131K | 80 |
+| `ik_llama-ik_llama-unsloth-qwen3.6-27b-mtp` | Qwen3.6-27B | Q4_K_M MTP | ik_llama | 200K | 47 |
+| `ik_llama-ik_llama-unsloth-qwen3.6-27b` | Qwen3.6-27B | Q4_K_M | ik_llama | 128K | 31 |
+| `ik_llama-unsloth-qwen3.5-9b-mtp` | Qwen3.5-9B | UD-Q4_K_XL MTP | ik_llama | 256K | 106 |
+| `ik_llama-unsloth-qwen3.5-9b` | Qwen3.5-9B | UD-Q4_K_XL | ik_llama | 256K | 105 |
+| `ik_llama-jackrong-qwopus3.5-9b-coder-mtp` | Qwopus3.5-9B-Coder | Q4_K_M MTP | ik_llama | 256K | 102 |
+| `ik_llama-jackrong-qwopus3.5-9b-coder` | Qwopus3.5-9B-Coder | Q4_K_M | ik_llama | 256K | 120 |
 
 TG = tokens/second (256-token completion, server mode).
 

@@ -38,7 +38,7 @@ for compose in "$DIR"/compose/*.yml; do
     bench_out="$RESULTS_DIR/$name.json"
 
     # ---- 1. llama-bench ----
-    if echo "$name" | grep -qE -- "-mtp$|-ik$"; then
+    if echo "$name" | grep -qE -- "-mtp$|^beellama-"; then
         echo "  [llama-bench] skipped (MTP/ik variant)"
         rm -f "$bench_out" "${bench_out}.stderr" 2>/dev/null || true
     elif [[ -f "$bench_out" ]] && [[ -s "$bench_out" ]]; then
