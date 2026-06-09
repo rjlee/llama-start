@@ -77,3 +77,7 @@ TG = tokens/second (256-token completion, server mode).
 - Persistence mode (`nvidia-smi -pm 1`) is enabled automatically to maximise available VRAM
 - The slot-cleaner sidecar is started automatically with each model and polls `/slots/:id_slot/erase` every 30 seconds
 - Override the models directory by setting `MODELS_DIR` in your environment (e.g. `export MODELS_DIR=/data/models`)
+
+---
+
+*Model compose configurations were adapted from [club-3090](https://github.com/noonghunna/club-3090).*
