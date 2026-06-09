@@ -17,10 +17,12 @@ mkdir -p "$RESULTS_DIR"
 nvidia-smi --query-gpu=driver_version --format=csv,noheader 2>/dev/null > "$DIR/.env" || true
 nvidia-smi -pm 1 >/dev/null 2>&1 || true
 
+MODELS_DIR="${MODELS_DIR:-/models}"
+
 for compose in "$DIR"/compose/*.yml; do
     [[ "$compose" == *slot-cleaner* ]] && continue
     name=$(basename "$compose" .yml)
-    gfile=$(grep " - /models/" "$compose" | sed "s|.*/models/||")
+    gfile=$(grep "\.gguf" "$compose" | head -1 | sed 's/.*- //; s/^.*\///')
 
     if [[ -z "$gfile" ]]; then
         echo "  $name: no model file found, skipping"
@@ -48,7 +50,7 @@ for compose in "$DIR"/compose/*.yml; do
         rm -f "$bench_out" "${bench_out}.stderr"
 
         if docker run --rm --gpus all \
-            -v /models:/models \
+            -v "$MODELS_DIR:/models" \
             --entrypoint /app/llama-bench \
             ghcr.io/ggml-org/llama.cpp:full-cuda \
             -m "/models/$gfile" \

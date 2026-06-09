@@ -6,7 +6,7 @@ services:
     ports:
     - 8080:8080
     volumes:
-    - /models:/models
+    - ${MODELS_DIR:-/models}:/models
     - /root/docker/club-3090/models/qwen3.6-35b-a3b/ik-llama/patches/apex-qwen-chat-template.jinja:/etc/apex-qwen-chat-template.jinja:ro
     - /usr/lib/x86_64-linux-gnu/libcuda.so.1:/app/lib/libcuda.so.1
     - /usr/lib/x86_64-linux-gnu/libcuda.so.${NVIDIA_DRIVER_VER}:/app/lib/libcuda.so.${NVIDIA_DRIVER_VER}
@@ -24,7 +24,7 @@ services:
     - --port
     - '8080'
     - -m
-    - /models/Qwen3.5-9B-UD-Q4_K_XL.mtp.gguf
+    - ${MODELS_DIR:-/models}/Qwen3.5-9B-UD-Q4_K_XL.mtp.gguf
     - --ctx-size
     - '262144'
     - -b

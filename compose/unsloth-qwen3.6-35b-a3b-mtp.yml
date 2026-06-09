@@ -6,7 +6,7 @@ services:
     ports:
     - 8080:8080
     volumes:
-    - /models:/models
+    - ${MODELS_DIR:-/models}:/models
     - /usr/lib/x86_64-linux-gnu/libcuda.so.1:/usr/local/nvidia/lib64/libcuda.so.1
     - /usr/lib/x86_64-linux-gnu/libcuda.so.${NVIDIA_DRIVER_VER}:/usr/local/nvidia/lib64/libcuda.so.${NVIDIA_DRIVER_VER}
     - /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1:/usr/local/nvidia/lib64/libnvidia-ml.so.1
@@ -23,7 +23,7 @@ services:
     - --port
     - '8080'
     - -m
-    - /models/Qwen3.6-35B-A3B-UD-Q4_K_M.mtp.gguf
+    - ${MODELS_DIR:-/models}/Qwen3.6-35B-A3B-UD-Q4_K_M.mtp.gguf
     - --ctx-size
     - '131072'
     - -b
