@@ -1,6 +1,6 @@
 services:
   llama-server:
-    image: ik-llama-cpp:cu13-server-local
+    image: ghcr.io/ikawrakow/ik-llama-cpp@sha256:5f914f1ccade922417af58c94bd1cbb558052c8852d86678ead3fe693eec0143
     container_name: llama-server
     restart: unless-stopped
     ports:
@@ -38,6 +38,8 @@ services:
     - '1024'
     - -np
     - '1'
+    - -n
+    - '8192'
     - -ctk
     - q8_0
     - -ctv
