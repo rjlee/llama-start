@@ -8,3 +8,9 @@ services:
     volumes:
       - /root/docker/llama-server/slot-cleaner/slot-cleaner.sh:/slot-cleaner.sh:ro
     command: sh /slot-cleaner.sh
+    healthcheck:
+      test: ["CMD-SHELL", "test -f /tmp/slot-cleaner-heartbeat && kill -0 1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 45s
