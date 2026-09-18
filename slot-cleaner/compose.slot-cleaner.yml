@@ -5,6 +5,8 @@ services:
     image: alpine:latest
     container_name: slot-cleaner
     restart: unless-stopped
+    environment:
+      - SLOT_SCHEMA=${SLOT_SCHEMA:-auto}
     volumes:
       - /root/docker/llama-server/slot-cleaner/slot-cleaner.sh:/slot-cleaner.sh:ro
     command: sh /slot-cleaner.sh
