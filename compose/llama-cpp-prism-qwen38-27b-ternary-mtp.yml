@@ -73,11 +73,16 @@ services:
     - --reasoning-budget-message
     - '[reasoning budget exhausted]'
     # Vision tower (separate mmproj, loaded only when an image arrives — zero cost for
-    # text). ⛔ DOWNLOADED BUT NEVER LOADED upstream — vision is UNVALIDATED here.
+    # text). ✅ Vision VALIDATED on this rig 2026-10-15 (test image described correctly).
     - --mmproj
     - /models/qwen3.8-27b-gguf/prism-ternary/Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf
     - -mmdev
     - none
+    # ⭐ Force each image to >=1024 tokens. The model card's KNOWN_ISSUES: grounding /
+    # "point at the object" tasks give POOR results with small images; --image-min-tokens
+    # 1024 is the documented workaround. Costs tokens+VRAM per image (only when one is sent).
+    - --image-min-tokens
+    - '1024'
     # THINKING sampler row (registry sampler_profiles, thinking = default):
     #   temp 1.0 / top_p 0.95 / top_k 20 / min_p 0.05 / presence 0.0
     # INSTRUCT row would be 0.7/0.80/20/0.0/1.5 — not used here (thinking is default).
