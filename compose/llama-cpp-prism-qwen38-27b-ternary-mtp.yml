@@ -1,0 +1,108 @@
+services:
+  llama-server:
+    # PrismML llama.cpp fork — PQ2_0 TERNARY kernels (PQ2_0/PTQ1_0, Hadamard-rotated).
+    # Image = upstream linux-cuda-12.8 release tarball + libgomp1, digest-pinned.
+    # ⚠️⚠️ NEVER repoint this GGUF at llama-cpp-local / llamacpp-club3090 / ik-llama:
+    # they load PQ2_0 as Q2_0 with NO WARNING and produce garbage (no Hadamard runtime).
+    # sm_86 compiled NATIVE — Ampere takes no JIT path.
+    image: ghcr.io/noonghunna/llamacpp-prism@sha256:e4ad4998ce120070b7b88389f708102b76755817da87a324c620058570250da3
+    container_name: llama-server
+    restart: unless-stopped
+    init: true
+    ports:
+    - 8080:8080
+    volumes:
+    - ${MODELS_DIR:-/models}:/models:ro
+    - /usr/lib/x86_64-linux-gnu/libcuda.so.1:/app/libcuda.so.1
+    - /usr/lib/x86_64-linux-gnu/libcuda.so.${NVIDIA_DRIVER_VER}:/app/libcuda.so.${NVIDIA_DRIVER_VER}
+    - /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1:/app/libnvidia-ml.so.1
+    - /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.${NVIDIA_DRIVER_VER}:/app/libnvidia-ml.so.${NVIDIA_DRIVER_VER}
+    - /usr/lib/x86_64-linux-gnu/libnvidia-ptxjitcompiler.so.1:/app/libnvidia-ptxjitcompiler.so.1
+    - /usr/lib/x86_64-linux-gnu/libnvidia-ptxjitcompiler.so.${NVIDIA_DRIVER_VER}:/app/libnvidia-ptxjitcompiler.so.${NVIDIA_DRIVER_VER}
+    devices:
+    - /dev/nvidia0:/dev/nvidia0
+    - /dev/nvidiactl:/dev/nvidiactl
+    - /dev/nvidia-uvm:/dev/nvidia-uvm
+    command:
+    # Bundled target+MTP head in ONE file (7.66 GB). Share token_embd/output —
+    # that is what makes MTP profitable here. NEVER use a -md sidecar: it duplicates
+    # the vocabulary and turns even 40% acceptance into a net loss (PrismML #205).
+    - -m
+    - /models/qwen3.8-27b-gguf/prism-ternary-mtp/Ternary-Bonsai-2-27B-PQ2_0-MTP-Q8_0.gguf
+    - --host
+    - 0.0.0.0
+    - --port
+    - '8080'
+    - --alias
+    - qwen3.8-27b-prism-ternary-mtp
+    # 262144 = the model's FULL declared context, measured on ONE 3090. Decode is
+    # FLAT across 32768->262144 (~2% over 8x). Use --ctx-size (not -c) so llama-start
+    # usage() parses the CTX column.
+    - --ctx-size
+    - '262144'
+    - -np
+    - '1'
+    - -ngl
+    - '99'
+    # ⚠️ LEAVE ub/b AT 512. Raising ubatch is MONOTONICALLY NEGATIVE on this model:
+    #   ub 512 -> 903.65 tok/s (best) · 1024 -> -2.3% · 2048 -> -8.7% · 4096 -> -16.1%
+    - -ub
+    - '512'
+    - -b
+    - '512'
+    # q8_0 KV (serving floor): 17,108 MiB (70% of card) vs f16's 23,806 (97%) for a
+    # 0.2% decode delta (45.71 vs 45.80). Quantised KV needs -fa on.
+    - -fa
+    - 'on'
+    - --cache-type-k
+    - q8_0
+    - --cache-type-v
+    - q8_0
+    # Thoughts to message.reasoning_content (not inline in content) — behaviour change
+    # vs `auto`; verified at boot below.
+    - --reasoning-format
+    - deepseek
+    # Thinking mode ON (the model thinks by default). reasoning_effort:low is NOT
+    # supported and silently behaves like xhigh — default is medium, not low.
+    - --reasoning
+    - 'on'
+    # Budget defaults to 32768: emittable inside a 900s cap at ~52 tok/s (628s), above
+    # the observed natural range (18,895 / 13,013 tokens). Per-request budget overrides it.
+    - --reasoning-budget
+    - '32768'
+    - --reasoning-budget-message
+    - '[reasoning budget exhausted]'
+    # Vision tower (separate mmproj, loaded only when an image arrives — zero cost for
+    # text). ⛔ DOWNLOADED BUT NEVER LOADED upstream — vision is UNVALIDATED here.
+    - --mmproj
+    - /models/qwen3.8-27b-gguf/prism-ternary/Ternary-Bonsai-2-27B-mmproj-Q8_0.gguf
+    - -mmdev
+    - none
+    # THINKING sampler row (registry sampler_profiles, thinking = default):
+    #   temp 1.0 / top_p 0.95 / top_k 20 / min_p 0.05 / presence 0.0
+    # INSTRUCT row would be 0.7/0.80/20/0.0/1.5 — not used here (thinking is default).
+    - --temp
+    - '1.0'
+    - --top-p
+    - '0.95'
+    - --top-k
+    - '20'
+    - --min-p
+    - '0.05'
+    - --presence-penalty
+    - '0.0'
+    # ⭐ SPECULATIVE DECODING — the point of this slug. Depth sweep (sm_86, one card):
+    #   off 48.70 · 1 74.96(1.54x) · 2 79.78(1.64x) · 3 82.57(1.70x)
+    #   4 89.58(1.84x) <-- DEFAULT · 5 73.21(-18%) · 6 69.68
+    # n=4 is a WORKLOAD CHOICE: code/format peak at n=4; FREE-FORM PROSE peaks at n=2
+    # (67.85) and by n=5 falls to 49.69 (~no-spec). Set SPEC_N=2 for prose-heavy use.
+    - --spec-type
+    - draft-mtp
+    - --spec-draft-n-max
+    - '4'
+    healthcheck:
+      test: ["CMD", "curl", "-sf", "http://localhost:8080/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 30
+      start_period: 300s
