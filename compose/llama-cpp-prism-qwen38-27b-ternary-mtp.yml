@@ -53,6 +53,12 @@ services:
     # usage() parses the CTX column.
     - --ctx-size
     - '262144'
+    # Livelock guard (same intent as the ik_llama compose's -n 8192): cap the DEFAULT
+    # generation length so a request without max_tokens cannot generate until EOS and
+    # monopolise the single slot (see the 2026-09-09 incident). Clients that send
+    # max_tokens override it; 65536 covers the 32768 reasoning budget + a long answer.
+    - -n
+    - '65536'
     - -np
     - '1'
     - -ngl
