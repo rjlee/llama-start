@@ -5,7 +5,17 @@ services:
     # ⚠️⚠️ NEVER repoint this GGUF at llama-cpp-local / llamacpp-club3090 / ik-llama:
     # they load PQ2_0 as Q2_0 with NO WARNING and produce garbage (no Hadamard runtime).
     # sm_86 compiled NATIVE — Ampere takes no JIT path.
-    image: ghcr.io/noonghunna/llamacpp-prism@sha256:e4ad4998ce120070b7b88389f708102b76755817da87a324c620058570250da3
+    # b12128 (PrismML prism-b12128-d7b2896) — adopted 2026-11-10 after a 3-way A/B
+    # (b10776 vs b10822 vs b12128) on this rig, warm cache, ignore_eos, median/3:
+    #   n=4 25K 67.35 -> 70.24 -> 73.06 tok/s (+8.5% vs b10776)
+    #   n=4 93K 66.18 -> 70.74 -> 71.44 tok/s (+8.0%)
+    #   n=1 25K 86.52 -> 95.30 -> 96.90 tok/s (+12.0%)
+    # Acceptance identical across builds (25K n=4 0.31, 93K n=4 0.44) — the win is
+    # graph/kernel work (GDN + moe/matmul fusions), not the draft path.
+    # NOTE (#418): this build turns the float4 RMS norm on by default, which shifts
+    # greedy output slightly (one phrase from ~char 1032). Set GGML_CUDA_RMS_NORM_VECTOR=0
+    # to restore byte-identical output; not needed here.
+    image: ghcr.io/noonghunna/llamacpp-prism@sha256:c68dd5a70a81a364ac92ef7f63db44f2c158b7612b1a5d03b81c40553025f0f9
     container_name: llama-server
     restart: unless-stopped
     init: true
@@ -13,6 +23,7 @@ services:
     - 8080:8080
     volumes:
     - ${MODELS_DIR:-/models}:/models:ro
+    - /root/docker/llama-server/chat-templates:/chat-templates:ro
     - /usr/lib/x86_64-linux-gnu/libcuda.so.1:/app/libcuda.so.1
     - /usr/lib/x86_64-linux-gnu/libcuda.so.${NVIDIA_DRIVER_VER}:/app/libcuda.so.${NVIDIA_DRIVER_VER}
     - /usr/lib/x86_64-linux-gnu/libnvidia-ml.so.1:/app/libnvidia-ml.so.1
@@ -29,6 +40,8 @@ services:
     # the vocabulary and turns even 40% acceptance into a net loss (PrismML #205).
     - -m
     - /models/qwen3.8-27b-gguf/prism-ternary-mtp/Ternary-Bonsai-2-27B-PQ2_0-MTP-Q8_0.gguf
+    - --chat-template-file
+    - /chat-templates/qwen38-27b-ternary-mtp.jinja
     - --host
     - 0.0.0.0
     - --port
