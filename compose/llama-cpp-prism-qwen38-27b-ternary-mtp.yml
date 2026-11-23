@@ -91,6 +91,18 @@ services:
     - '32768'
     - --reasoning-budget-message
     - '[reasoning budget exhausted]'
+    # PrismML-only effort guard (upstream prism #321, present in b12128): the chat
+    # template accepts ONLY xhigh/medium/low and RAISES HTTP 500 on anything else —
+    # and "high"/"max" is what Cline, Kilo Code and Open WebUI send by default.
+    # Measured here 2026-11-23 before this fix: reasoning_effort high -> 500,
+    # max -> 500, medium -> 200. The server now replaces a non-allowed value with
+    # the fallback BEFORE the template sees it. ⚠️ "none" does NOT switch thinking
+    # off on this server (it renders the xhigh prompt); send chat_template_kwargs
+    # {"enable_thinking": false} instead, as verify-full does.
+    - --reasoning-effort-allow
+    - xhigh,medium,low
+    - --reasoning-effort-fallback
+    - xhigh
     # Vision tower (separate mmproj, loaded only when an image arrives — zero cost for
     # text). ✅ Vision VALIDATED on this rig 2026-10-15 (test image described correctly).
     - --mmproj
